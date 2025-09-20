@@ -11,3 +11,12 @@ export const registerSchema = z.object({
     password:z.string().min(8,'password must be 8 characters long'),
 
 })
+
+export const loginSchema = z.object({
+  email:z.string()
+    .email('invalid email')
+    .refine(val => val.endsWith('@gmail.com'),{
+      message:'must be a valid gmail account',
+    }),
+    password:z.string().min(8,'password must be 8 characters long'),
+})

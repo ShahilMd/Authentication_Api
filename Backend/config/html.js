@@ -1,4 +1,4 @@
-export const getOtpHtml = ({ email, otp }) => {
+export const getOtpHtml = ( email, otp ) => {
 const html = `<!DOCTYPE html>
 <html lang="en">
 <head>

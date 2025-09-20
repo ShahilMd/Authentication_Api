@@ -1,13 +1,16 @@
 import sanitize from "mongo-sanitize";
 import asyncHandler from "../middlewares/asyncHandler.js";
-import { registerSchema } from "../config/zod.js";
+import { loginSchema, registerSchema } from "../config/zod.js";
 import { redisClient } from "../index.js";
 import { User } from "../models/User.js";
 import bcrypt from "bcrypt";
 import crypto from "crypto"
 import sendMail from "../config/sendMail.js";
-import { getVerifyEmailHtml } from "../config/html.js";
+import { getOtpHtml, getVerifyEmailHtml } from "../config/html.js";
 import { email } from "zod";
+import { generateToken } from "../config/generateToken.js";
+
+
 
 export const registerUser = asyncHandler(async(req,res) => {
   //1. We senitize our request body to make sure no SQL injection make no impact on mr server
@@ -152,4 +155,116 @@ export const verifyUser = asyncHandler(async(req,res) => {
       role:(await newUser).role,
     }
   })
+})
+
+export const loginUser = asyncHandler(async(req,res) => {
+  const senitizeBody = sanitize(req.body)
+
+  const validate = loginSchema.safeParse(senitizeBody)
+
+  if(!validate.success){
+    let zodError = validate?.error
+    let firstError = 'Validation Error';
+    let allError = []
+    if(zodError?.issues && Array.isArray(zodError.issues)){
+      allError = zodError.issues.map((issue)=>(
+        {
+          field:issue.path?.join('.'),
+          message:issue.message || firstError,
+          code:issue.code 
+        }
+      ))
+      firstError = allError[0].message || "Validation Error"
+      
+    }
+    return res.status(400).json({
+      message : firstError,
+      errors : allError
+    })
+  }
+
+  const {email , password} = validate.data
+
+  const ratelimitKey = `login-rate-limit:${req.ip}:${email}`;
+
+  if(await redisClient.get(ratelimitKey)){
+    return res.status(400).json({
+      message:"Too many requests, try again later",
+    })
+  }
+
+  const user = await User.findOne({email})
+
+  if(!user){
+    return res.status(400).json({
+      message:"Invalid Cradentials",
+    })
+  }
+
+  const isPasswordMatch = await bcrypt.compare(password,user.password)
+
+  if(!isPasswordMatch){
+    return res.status(400).json({
+      message:"Invalid Cradentials",
+    })
+  }
+
+  const otp = Math.floor(100000 + Math.random()* 900000).toString();
+
+  const otpKey = `otp:${email}`;
+  await redisClient.set(otpKey,JSON.stringify(otp),{
+    EX:300
+  })
+
+  const subject = "Otp for validation";
+  const html = getOtpHtml(otp);
+
+  await sendMail({
+    email,
+    subject,
+    html
+  })
+
+  await redisClient.set(ratelimitKey,'true',{
+    EX:60
+  })
+  res.json({
+    message:"Otp send to your email, it will be valid for 5 minutes"
+  })
+})
+
+export const verifyOtp = asyncHandler(async(req,res) => {
+  const {email,otp} = req.body
+  if(!email ||!otp){
+    return res.status(400).json({
+      message:"Otp is required"
+    })
+  }
+
+  const otpkey = `otp:${email}`
+  const storedOtpString = await redisClient.get(otpkey)
+
+  if(!storedOtpString){
+    return res.status(400).json({
+      message:"Otp is expire"
+    })
+  }
+  const storeOtp = await JSON.parse(storedOtpString)
+
+  if(storeOtp !== otp){
+    return res.status(400).json({
+      message:"Invalid Otp"
+    })
+  }
+
+  await redisClient.del(otpkey)
+
+  const user = await User.findOne({email})
+
+  const {acessToken,refreshToken} = await generateToken(user._id,res)
+
+  res.status(200).json({
+    message:`Welcome ${user.name}`,
+  })
+
 })
