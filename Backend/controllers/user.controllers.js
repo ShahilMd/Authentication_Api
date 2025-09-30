@@ -315,6 +315,7 @@ export const logout = asyncHandler(async(req,res) => {
 
   res.clearCookie('accessToken')
   res.clearCookie('refreshToken')
+  await redisClient.del(`user:${userId}`)
   return res.status(200).json({
     message:"Logout Successfully"
   })
