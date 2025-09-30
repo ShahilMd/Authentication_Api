@@ -3,6 +3,7 @@ import dotenv from 'dotenv'
 import connectDB from './config/db.config.js'
 import userRouter from './routes/user.route.js'
 import { createClient } from 'redis'
+import cookieParser from 'cookie-parser'
 
 
 dotenv.config()
@@ -28,8 +29,10 @@ redisClient
 
 const app = express()
 
+
 app.use(express.json())
 app.use(express.urlencoded({extended : true}))
+app.use(cookieParser());
 
 const port = process.env.PORT || 5000
 

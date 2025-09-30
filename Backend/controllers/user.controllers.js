@@ -7,8 +7,8 @@ import bcrypt from "bcrypt";
 import crypto from "crypto"
 import sendMail from "../config/sendMail.js";
 import { getOtpHtml, getVerifyEmailHtml } from "../config/html.js";
-import { email } from "zod";
-import { generateToken } from "../config/generateToken.js";
+import { generateAccessToken, generateToken, revokeRefreshToken, verifyRefresh } from "../config/generateToken.js";
+import { read } from "fs";
 
 
 
@@ -219,11 +219,11 @@ export const loginUser = asyncHandler(async(req,res) => {
   const subject = "Otp for validation";
   const html = getOtpHtml(otp);
 
-  await sendMail({
-    email,
-    subject,
-    html
-  })
+  // await sendMail({
+  //   email,
+  //   subject,
+  //   html
+  // })
 
   await redisClient.set(ratelimitKey,'true',{
     EX:60
@@ -259,12 +259,64 @@ export const verifyOtp = asyncHandler(async(req,res) => {
 
   await redisClient.del(otpkey)
 
-  const user = await User.findOne({email})
+  const user = await User.findOne({email}).select('-password');
 
-  const {acessToken,refreshToken} = await generateToken(user._id,res)
+ await generateToken(user._id,res)
 
   res.status(200).json({
     message:`Welcome ${user.name}`,
+    user:user
+  })
+
+})
+
+export const profile = asyncHandler(async(req,res) =>{
+
+  const user = req.user;
+
+  if(!user){
+    return res.status(400).json({
+      message:"User not found"
+    })
+  }
+  return res.status(200).json({
+    user:user
+  })
+})
+
+export const refreshToken =asyncHandler(async(req,res)=> {
+
+  const refreshToken = req.cookies.refreshToken
+
+  if(!refreshToken){
+    return res.status(401).json({
+      message:"No token found please login"
+    })
+  }
+  const decode = await verifyRefresh(refreshToken)
+
+  if(!decode){
+    return res.status(401).json({
+      message:"Invalid Refresh Token"
+    })
+  }
+
+  generateAccessToken(decode.id,res)
+  return res.status(200).json({
+    message:"token Refresh"
+  })
+})
+
+export const logout = asyncHandler(async(req,res) => {
+
+  const userId = req.user._id
+
+  await revokeRefreshToken(userId)
+
+  res.clearCookie('accessToken')
+  res.clearCookie('refreshToken')
+  return res.status(200).json({
+    message:"Logout Successfully"
   })
 
 })
