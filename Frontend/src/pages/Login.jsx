@@ -1,15 +1,36 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link ,useNavigate} from 'react-router-dom';
+import axios from 'axios';
+import { server } from '../main';
+import { toast } from 'react-toastify';
+import Loader from '../components/Loader'
+
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [btnLoading, setBtnLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async(e) => {
     e.preventDefault();
-    console.log('Login submitted:', { email, password });
+
+    try {
+      setBtnLoading(true);
+      const {data} = await axios.post(`${server}/api/v1/login`,{
+        email,
+        password
+      })
+      toast.success(data.message)
+      localStorage.setItem('email',email)
+      navigate('/verify-otp')
+    } catch (error) {
+      toast.error(error.response.data.message)
+    }finally{
+      setBtnLoading(false);
+    }
   };
 
   return (
@@ -88,9 +109,10 @@ export default function Login() {
 
             {/* Submit Button */}
             <button
-              className="w-full bg-indigo-600 text-white py-3 rounded-xl font-medium hover:bg-indigo-700 active:scale-98 transition-all shadow-sm"
+              className={`w-full bg-indigo-600 text-white py-3 rounded-xl font-medium hover:bg-indigo-700 active:scale-98 transition-all shadow-sm ${btnLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={btnLoading}
             >
-              Sign in
+              {btnLoading ? <Loader/> : 'Sign in'}
             </button>
           </div>
 

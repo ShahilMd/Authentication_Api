@@ -233,6 +233,37 @@ export const loginUser = asyncHandler(async(req,res) => {
   })
 })
 
+export const reSendOtp = asyncHandler(async(req,res) => {
+  const email  =req.body.email
+  console.log(email);
+  
+
+  await redisClient.del(`otp:${email}`)
+
+  const otp = Math.floor(100000 + Math.random()* 900000).toString();
+
+  const ratelimitKey = `login-rate-limit:${req.ip}:${email}`;
+  const otpKey = `otp:${email}`;
+  await redisClient.set(otpKey,JSON.stringify(otp),{
+    EX:300
+  })
+    const subject = "Otp for validation";
+  const html = getOtpHtml(otp);
+
+  // await sendMail({
+  //   email,
+  //   subject,
+  //   html
+  // })
+
+  await redisClient.set(ratelimitKey,'true',{
+    EX:60
+  })
+  res.json({
+    message:"Otp send to your email, it will be valid for 5 minutes"
+  })
+})
+
 export const verifyOtp = asyncHandler(async(req,res) => {
   const {email,otp} = req.body
   if(!email ||!otp){

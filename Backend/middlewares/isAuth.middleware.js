@@ -24,7 +24,7 @@ export const isAuth = async(req,res,next)=>{
     const cachUser = await redisClient.get(`user:${decodedData.id}`)
 
     if(cachUser){
-      console.log('user from cache');
+      // console.log('user from cache');
       req.user = JSON.parse(cachUser)
       next()
       return
@@ -40,7 +40,7 @@ export const isAuth = async(req,res,next)=>{
 
     await redisClient.setEx(`user:${user._id}`,60*60,JSON.stringify(user))
 
-    console.log("user from db");
+    // console.log("user from db");
     
     req.user = user
 

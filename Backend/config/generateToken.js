@@ -18,13 +18,14 @@ export const generateToken =async (id, res) => {
 
   res.cookie("accessToken",accessToken,{
     httpOnly:true,
-    // secure:true,
-    sameSite:"Strict",
-    maxAge:1*60*1000
+    secure:true,
+    sameSite:"none",
+    maxAge:60*1000
   })
   res.cookie("refreshToken",refreshToken,{
     httpOnly:true,
-    sameSite:"Strict",
+    secure:true,
+    sameSite:"none",
     maxAge:60*60*24*7*1000})
 
   return {accessToken ,refreshToken};
@@ -55,9 +56,9 @@ export const generateAccessToken = (id,res) => {
 
    return res.cookie("accessToken",accessToken,{
     httpOnly:true,
-    // secure:true,
-    sameSite:"Strict",
-    maxAge:1*60*1000
+    secure:true,
+    sameSite:"none",
+    maxAge:60*1000
   })
 }
 
