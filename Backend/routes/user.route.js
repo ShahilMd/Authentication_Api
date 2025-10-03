@@ -1,6 +1,6 @@
 import express from 'express'
 import { loginUser, logout, profile, refreshToken, registerUser, reSendOtp, verifyOtp, verifyUser } from '../controllers/user.controllers.js';
-import { isAuth } from '../middlewares/isAuth.middleware.js';
+import { isAuthenticated } from '../middlewares/isAuthenticated.js';
 
 
 
@@ -11,9 +11,9 @@ userRouter.post('/register/verify/:token',verifyUser)
 userRouter.post('/login',loginUser)
 userRouter.post('/login/verify/otp',verifyOtp)
 userRouter.post('/login/verify/resend/otp',reSendOtp)
-userRouter.get('/profile',isAuth,profile)
+userRouter.get('/profile',isAuthenticated,profile)
 userRouter.post('/refresh',refreshToken)
-userRouter.post('/logout',isAuth,logout)
+userRouter.post('/logout',isAuthenticated,logout)
 
 
 export default userRouter;

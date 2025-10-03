@@ -293,6 +293,7 @@ export const verifyOtp = asyncHandler(async(req,res) => {
   const user = await User.findOne({email}).select('-password');
 
  await generateToken(user._id,res)
+ await redisClient.set(`user:${user._id}`,JSON.stringify(user))
 
   res.status(200).json({
     message:`Welcome ${user.name}`,
