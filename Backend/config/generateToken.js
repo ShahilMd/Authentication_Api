@@ -1,5 +1,6 @@
 import  jwt from "jsonwebtoken"
 import { redisClient } from "../index.js";
+import {generateCsrfToken, revokeCsrfToken} from "./csrfToken.js";
 
 
 
@@ -28,7 +29,9 @@ export const generateToken =async (id, res) => {
     sameSite:"none",
     maxAge:60*60*24*7*1000})
 
-  return {accessToken ,refreshToken};
+    const csrfToken = await  generateCsrfToken(id,res)
+
+  return {accessToken ,refreshToken,csrfToken};
 }
 
 export const verifyRefresh = async(token)=>{
@@ -64,5 +67,6 @@ export const generateAccessToken = (id,res) => {
 
 export const revokeRefreshToken = async (id) => {
   
-  await redisClient.del(`refreshToken:${id}`)
+    await redisClient.del(`refreshToken:${id}`)
+    await revokeCsrfToken(id)
 }

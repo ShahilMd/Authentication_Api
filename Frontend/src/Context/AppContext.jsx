@@ -1,6 +1,8 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
-import api from "../apiInterseptor.js";
+import { server } from "../main.jsx";
+import axios from "axios";
+import { toast } from "react-toastify";
 
 
 const AppContext = createContext();
@@ -14,22 +16,44 @@ export const AppProvider = ({children}) => {
   async function fetchUser() {
     setLoding(true)
    try {
-     const {data} = await api.get(`/api/v1/profile`)
+     const {data} = await axios.get(`${server}/api/v1/profile`,{
+      withCredentials:true
+     })
+     if(!data){
+      setUser(null)
+      setIsAuth(false)
+     }
      setUser(data)
      setIsAuth(true)
    } catch (error) {
     console.log(error);
-    
+    setIsAuth(false)
+    setUser(null)
    }finally{
     setLoding(false)
    }
+  }
+
+  async function logout() { 
+    setLoding(true)
+    try {
+      const data = await axios.post(`${server}/api/v1/logout`,{},{withCredentials:true})
+      toast.success(data.message)
+      setUser(null)
+      setIsAuth(false)
+    } catch (error) {
+      console.log(error.response.data.message);
+      toast(error.response.data.message)
+    }finally{
+      setLoding(false)
+    }
   }
 
   useEffect(() => {
     fetchUser()
   }, [])
 
-  return <AppContext.Provider value={{user,setIsAuth,setUser,isAuth,loding}}>{children}</AppContext.Provider>
+  return <AppContext.Provider value={{user,setIsAuth,setUser,isAuth,loding,logout,fetchUser}}>{children}</AppContext.Provider>
 }
 
 export const AppData =() => {

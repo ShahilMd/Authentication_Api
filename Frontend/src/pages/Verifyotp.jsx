@@ -5,6 +5,7 @@ import axios from "axios";
 import {server} from "../main.jsx";
 import {toast} from "react-toastify";
 import Loader from "../components/Loader.jsx";
+import { AppData } from '../Context/AppContext.jsx';
 
 export default function Verifyotp() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -14,6 +15,8 @@ export default function Verifyotp() {
   const [btnLoading , setBtnLoading] = useState(false);
   const inputRefs = useRef([]);
   const navigate = useNavigate();
+
+  const { fetchUser } = AppData();
 
   useEffect(() => {
       const email = localStorage.getItem('email');
@@ -97,7 +100,8 @@ export default function Verifyotp() {
         })
         toast.success(data.message)
         localStorage.clear('email')
-        navigate('/dashboard')
+        await fetchUser()
+        navigate('/')
     } catch (error) {
         console.error(error);
         toast.error(error.response.data.message);

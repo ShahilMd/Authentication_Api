@@ -9,6 +9,7 @@ import sendMail from "../config/sendMail.js";
 import { getOtpHtml, getVerifyEmailHtml } from "../config/html.js";
 import { generateAccessToken, generateToken, revokeRefreshToken, verifyRefresh } from "../config/generateToken.js";
 import { read } from "fs";
+import {generateCsrfToken, refreshCsrfToken} from "../config/csrfToken.js";
 
 
 
@@ -107,7 +108,7 @@ export const registerUser = asyncHandler(async(req,res) => {
   
   // sending response 
   res.json({
-    message:"A verification link  send to your email it will expire in 5 minutes",
+    message:"Verification link sent to your email, Please verify your email",
   })
 })
 
@@ -347,9 +348,21 @@ export const logout = asyncHandler(async(req,res) => {
 
   res.clearCookie('accessToken')
   res.clearCookie('refreshToken')
+  res.clearCookie('csrfToken')
   await redisClient.del(`user:${userId}`)
   return res.status(200).json({
     message:"Logout Successfully"
   })
 
+})
+
+export const refreshCSRFToken = asyncHandler(async(req,res) => {
+    const userId = req.user.id
+
+    const newCsrfToken = await refreshCsrfToken(userId,res)
+
+    return res.status(200).json({
+        message:"CSRF token refresh",
+        csrfToken: newCsrfToken
+    })
 })

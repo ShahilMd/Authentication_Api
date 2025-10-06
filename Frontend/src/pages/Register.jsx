@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, Server } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import axios from 'axios'
+import {server} from '../main'
+import { toast } from 'react-toastify';
+import Loader from '../components/Loader';
 
 export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    fullName: '',
+    name: '',
     email: '',
     password: '',
-    confirmPassword: ''
   });
+  const [loading , setLoading] = useState(false)
 
   const handleChange = (e) => {
     setFormData({
@@ -18,9 +22,26 @@ export default function SignupPage() {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Signup submitted:', formData);
+    try {
+      console.log('Signup submitted:', formData);
+      setLoading(true)
+      const {data} = await axios.post(`${server}/api/v1/register`,{
+        ...formData
+      })
+      if(!data){
+        toast.error('Somthing went wrong Please try again')
+        return;
+      }
+      toast.success(data.message)
+      setLoading(false)
+    } catch (error) {
+      toast.error(error.response.data.message)
+    }finally{
+      setLoading(false)
+    }
+
   };
 
   return (
@@ -42,14 +63,14 @@ export default function SignupPage() {
           <div className="space-y-5">
             {/* Full Name Input */}
             <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-slate-700 mb-2">
+              <label htmlFor="name" className="block text-sm font-medium text-slate-700 mb-2">
                 Full name
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
                 <input
-                  id="fullName"
-                  name="fullName"
+                  id="name"
+                  name="name"
                   type="text"
                   value={formData.fullName}
                   onChange={handleChange}
@@ -126,9 +147,10 @@ export default function SignupPage() {
             {/* Submit Button */}
             <button
               onClick={handleSubmit}
-              className="w-full bg-indigo-600 text-white py-3 rounded-xl font-medium hover:bg-indigo-700 active:scale-98 transition-all shadow-sm"
+              disabled={loading}
+              className={`w-full bg-indigo-600 text-white py-3 rounded-xl font-medium hover:bg-indigo-700 active:scale-98 transition-all shadow-sm ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              Create account
+              {loading ? <Loader/> : 'Create account'}
             </button>
           </div>
 
