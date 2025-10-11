@@ -12,6 +12,7 @@ export const AppProvider = ({children}) => {
   const [loding,setLoding] = useState(false);
   const [user,setUser] = useState(null);
   const [isAuth,setIsAuth] = useState(false);
+  const [lastLogin, setLastLogin] = useState(localStorage.getItem('lastLogin') || '');
 
   async function fetchUser() {
     setLoding(true)
@@ -34,16 +35,34 @@ export const AppProvider = ({children}) => {
    }
   }
 
+  function getCsrfToken(){
+      const match = document.cookie.match(/csrfToken=([^;]+)/);
+      return match ? match[1] : null;
+  }
+
   async function logout() { 
     setLoding(true)
+      const csrfToken = await  getCsrfToken();
     try {
-      const data = await axios.post(`${server}/api/v1/logout`,{},{withCredentials:true})
+      const data =     await axios.post(`${server}/api/v1/logout`, {}, {
+          withCredentials: true,
+          headers: {
+              'x-csrf-token': csrfToken
+          }
+      });
       toast.success(data.message)
       setUser(null)
       setIsAuth(false)
     } catch (error) {
-      console.log(error.response.data.message);
-      toast(error.response.data.message)
+        if(error.response?.data?.code === 'CSRF_TOKEN_EXPIRED' || error.response?.data?.code === 'CSRF_TOKEN_MISSING') {
+            // Refresh CSRF token and retry
+            await axios.post(`${server}/api/v1/refresh/csrf`, {}, { withCredentials: true });
+            // Retry logout
+            await logout();
+        }else{
+            console.log(error.response.data.message);
+            toast(error.response.data.message)
+        }
     }finally{
       setLoding(false)
     }
@@ -53,7 +72,7 @@ export const AppProvider = ({children}) => {
     fetchUser()
   }, [])
 
-  return <AppContext.Provider value={{user,setIsAuth,setUser,isAuth,loding,logout,fetchUser}}>{children}</AppContext.Provider>
+  return <AppContext.Provider value={{user,setIsAuth,setUser,isAuth,loding,logout,fetchUser,setLastLogin,lastLogin}}>{children}</AppContext.Provider>
 }
 
 export const AppData =() => {

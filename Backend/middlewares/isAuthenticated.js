@@ -15,7 +15,6 @@ export const isAuthenticated = async(req,res,next)=>{
       })
     }else{
       const decodeData = jwt.verify(refreshToken,process.env.JWT_REFRESH_SECRET)
-      
 
       if(!decodeData){
         return res.status(400).json({

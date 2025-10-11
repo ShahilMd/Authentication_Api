@@ -43,8 +43,10 @@ export default function Verifyotp() {
     }
   };
 
-  const handleKeyDown = (index, e) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+  const handleKeyDown = async (index, e) => {
+      if(e.key === 'Enter') {
+         await handleVerify(e)
+      } else if (e.key === 'Backspace' && !otp[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
   };
@@ -99,7 +101,7 @@ export default function Verifyotp() {
             withCredentials: true,
         })
         toast.success(data.message)
-        localStorage.clear('email')
+        localStorage.removeItem('email')
         await fetchUser()
         navigate('/')
     } catch (error) {

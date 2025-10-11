@@ -6,9 +6,9 @@ import Loader from '../components/Loader';
 
 export default function Home() {
 
-  let {user,logout,loding} = AppData()
+  let {user,logout,loding, lastLogin} = AppData()
   const createdAtDate = new Date(user.user.createdAt);
-  const formattedDate = moment(createdAtDate).format('MMMM Do YYYY, h:mm:ss a');
+  const formattedDate = (date) =>moment(date).format('MMMM Do YYYY, h:mm:ss a')
 
   
   const logoutHandler = async() => {
@@ -31,7 +31,7 @@ export default function Home() {
             </div>
           </div>
           
-          <button onClick={logoutHandler} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-700 bg-neutral-100 rounded-lg hover:bg-neutral-200 transition-colors">
+          <button onClick={logoutHandler} className="flex cursor-pointer items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-700 bg-neutral-100 rounded-lg hover:bg-neutral-200 transition-colors">
             <LogOut className="w-4 h-4" />
             {loding ? <Loader/> : 'Logout'}
           </button>
@@ -54,14 +54,14 @@ export default function Home() {
               <h3 className="text-xl font-semibold text-neutral-900 mb-6">Your Profile</h3>
               <div className="flex items-center gap-6 mb-8">
                 <div className="w-20 h-20 bg-gradient-to-br from-neutral-800 to-neutral-600 rounded-2xl flex items-center justify-center text-white text-2xl font-bold">
-                  JD
+                    {user.user.name.slice(0,2).toUpperCase()}
                 </div>
                 <div className="flex-1">
                   <h4 className="text-2xl font-semibold text-neutral-900 mb-1"> {user.user.name}</h4>
                   <p className="text-neutral-600 mb-2"> {user.user.email}</p>
                   <div className="flex items-center gap-2 text-sm text-neutral-500">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                     {formattedDate}
+                     {formattedDate(createdAtDate)}
                   </div>
                 </div>
                 <button className="px-6 py-3 bg-neutral-900 text-white rounded-lg font-medium hover:bg-neutral-800 transition-colors">
@@ -77,7 +77,9 @@ export default function Home() {
                 </div>
                 <div>
                   <div className="text-sm text-neutral-500 mb-2">Last Login</div>
-                  <div className="text-neutral-900 font-semibold">Today at 9:24 AM</div>
+                  <div className="text-neutral-900 font-semibold">
+                      {formattedDate(lastLogin)}
+                  </div>
                 </div>
                 <div>
                   <div className="text-sm text-neutral-500 mb-2">Two-Factor Auth</div>

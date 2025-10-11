@@ -9,7 +9,12 @@ import sendMail from "../config/sendMail.js";
 import { getOtpHtml, getVerifyEmailHtml } from "../config/html.js";
 import { generateAccessToken, generateToken, revokeRefreshToken, verifyRefresh } from "../config/generateToken.js";
 import { read } from "fs";
-import {generateCsrfToken, refreshCsrfToken} from "../config/csrfToken.js";
+import {generateCsrfToken, refreshCsrfToken, revokeCsrfToken} from "../config/csrfToken.js";
+import cloudinary from "../config/cloudinary.js";
+import DataURIParser from "datauri/parser.js";
+import path from "path";
+import {getBuffer} from "../config/getBuffer.js";
+
 
 
 
@@ -317,6 +322,52 @@ export const profile = asyncHandler(async(req,res) =>{
   })
 })
 
+export const editProfile = asyncHandler(async (req, res) => {
+    const name = req.body.name;
+    const profileImg = req.file
+    const user = req.user;
+
+    const dbUser = await  User.findOne({email:user.email})
+    if(!dbUser){
+        return res.status(400).json({
+            message:"User not found"
+        })
+    }
+    await  redisClient.del(`user:${dbUser._id}`)
+    try {
+        if(name){
+            dbUser.name = name
+        }
+        if(profileImg){
+            const formatData = getBuffer(profileImg)
+            if(!formatData || !formatData.content){
+                return res.status(400).json({
+                    message:"Invalid Profile Image or error while uploading"
+                })
+            }
+            const result = await cloudinary.uploader.upload(formatData.content,{
+                folder: "/profileImg",
+                resource_type: "image"
+            })
+            dbUser.profileImg = result.secure_url
+            dbUser.publicId = result.public_id
+        }
+        await dbUser.save()
+        await redisClient.set(`user:${dbUser._id}`,JSON.stringify(dbUser))
+
+        return res.status(200).json({
+            message:"Profile updated successfully",
+            user:dbUser
+        })
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            message:"Internal server error"
+        })
+    }
+
+})
+
 export const refreshToken =asyncHandler(async(req,res)=> {
 
   const refreshToken = req.cookies.refreshToken
@@ -345,6 +396,7 @@ export const logout = asyncHandler(async(req,res) => {
   const userId = req.user._id
 
   await revokeRefreshToken(userId)
+  await revokeCsrfToken(userId)
 
   res.clearCookie('accessToken')
   res.clearCookie('refreshToken')
@@ -356,8 +408,10 @@ export const logout = asyncHandler(async(req,res) => {
 
 })
 
+
 export const refreshCSRFToken = asyncHandler(async(req,res) => {
-    const userId = req.user.id
+    const userId = req.user._id
+    console.log(userId)
 
     const newCsrfToken = await refreshCsrfToken(userId,res)
 

@@ -8,6 +8,7 @@ import cors from 'cors'
 
 
 
+
 dotenv.config()
 await connectDB()
 
@@ -27,7 +28,9 @@ export const redisClient = createClient({
 redisClient
   .connect()
   .then(() => console.log('redis connected'))
-  .catch((err)=>console.log(err))
+  .catch((err)=>console.log(err.message))
+
+
 
 const app = express()
 

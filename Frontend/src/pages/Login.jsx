@@ -5,6 +5,7 @@ import axios from 'axios';
 import { server } from '../main';
 import { toast } from 'react-toastify';
 import Loader from '../components/Loader'
+import {AppData} from "../Context/AppContext.jsx";
 
 
 export default function Login() {
@@ -13,6 +14,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [btnLoading, setBtnLoading] = useState(false);
   const navigate = useNavigate();
+  const {setLastLogin,lastLogin} = AppData()
 
   const handleSubmit = async(e) => {
     e.preventDefault();
@@ -25,7 +27,9 @@ export default function Login() {
       })
       toast.success(data.message)
       localStorage.setItem('email',email)
-      navigate('/verify-otp')
+        setLastLogin(new Date().toLocaleString());
+        localStorage.setItem('lastLogin', new Date().toLocaleString());
+        navigate('/verify-otp')
     } catch (error) {
       toast.error(error.response.data.message)
     }finally{

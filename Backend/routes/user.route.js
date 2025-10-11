@@ -1,5 +1,6 @@
 import express from 'express'
 import {
+    editProfile,
     loginUser,
     logout,
     profile,
@@ -12,6 +13,7 @@ import {
 } from '../controllers/user.controllers.js';
 import { isAuthenticated } from '../middlewares/isAuthenticated.js';
 import {verifyCsrfToken} from "../config/csrfToken.js";
+import {upload} from "../middlewares/upload.middleware.js";
 
 
 
@@ -23,6 +25,7 @@ userRouter.post('/login',loginUser)
 userRouter.post('/login/verify/otp',verifyOtp)
 userRouter.post('/login/verify/resend/otp',reSendOtp)
 userRouter.get('/profile',isAuthenticated,profile)
+userRouter.post('/profile/edit',isAuthenticated,verifyCsrfToken,upload,editProfile)
 userRouter.post('/refresh',refreshToken)
 userRouter.post('/logout',isAuthenticated,verifyCsrfToken,logout)
 userRouter.post('/refresh/csrf',isAuthenticated, refreshCSRFToken)

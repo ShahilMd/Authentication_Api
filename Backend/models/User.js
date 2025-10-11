@@ -14,6 +14,14 @@ const schema = new mongoose.Schema({
     trim:true,
     unique:true
   },
+  profileImg:{
+    type:String,
+      default:""
+  },
+  publicId:{
+      type:String,
+      default:""
+  },
   password:{
     type:String,
     required:[true,'password is required'],

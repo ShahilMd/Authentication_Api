@@ -22,10 +22,10 @@ export const verifyCsrfToken =async (req,res,next) => {
        if(req.method === 'GET'){
             return next()
        }
-       const userId = req.user.id;
+       const userId = req.user._id
        if(!userId){
            return res.status(401).json({
-               message:"Unauthorized access User not authenticated"
+               message:"Unauthorized access User not authenticated from userId"
            })
        }
 
