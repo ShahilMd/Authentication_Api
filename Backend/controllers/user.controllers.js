@@ -18,6 +18,8 @@ import {getBuffer} from "../config/getBuffer.js";
 
 
 
+
+
 export const registerUser = asyncHandler(async(req,res) => {
   //1. We senitize our request body to make sure no SQL injection make no impact on mr server
   const senitizeBody = sanitize(req.body);
@@ -366,6 +368,65 @@ export const editProfile = asyncHandler(async (req, res) => {
         })
     }
 
+})
+
+export const changePassword  = asyncHandler(async(req,res) => {
+  const {oldPassword,newPassword} = req.body;
+  if(!oldPassword || !newPassword){
+    return res.status(400).json({
+      success:false,
+      message:'Old password and new password is required'
+    })
+  }
+  if(oldPassword === newPassword){
+    return res.status(400).json({
+      success:false,
+      message:'Old password and new password can not be same'
+    })
+  }
+
+  if(newPassword.length < 8 || typeof newPassword !== 'string'){
+    return res.status(400).json({
+      success:false,
+      message:'Password must be a string andat least 8 characters long'
+    })
+  }
+
+  const user = req.user;
+
+  const dbUser = await User.findById(user._id);
+
+  if(!dbUser){
+    return res.status(400).json({
+      success:false,
+      message:"User not found"
+    })
+  }
+
+  await redisClient.del(`user:${dbUser._id}`)
+
+  const isMatch = await bcrypt.compare(oldPassword,dbUser.password)
+
+  if(!isMatch){
+    return res.status(400).json({
+      success:false,
+      mesage:'Password not matched please enter correct password'
+    })
+  }
+
+  const hashNewPassword = await bcrypt.hash(newPassword,10)
+  dbUser.password = hashNewPassword;
+  await dbUser.save();
+
+  const userObj = dbUser.toObject()
+  delete userObj.password
+
+  await redisClient.set(`user:${dbUser._id}`,JSON.stringify(userObj))
+
+  return res.status(200).json({
+    success:true,
+    message:"Password changed successfully"
+  }) 
 })
 
 export const refreshToken =asyncHandler(async(req,res)=> {

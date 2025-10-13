@@ -1,14 +1,16 @@
 
-import { User, Shield, Activity, FileText, TrendingUp, Clock, LogOut, ChevronRight } from 'lucide-react';
+import { User,X, Shield, LogOut,Upload   } from 'lucide-react';
 import { AppData } from '../Context/AppContext';
 import moment from 'moment'
 import Loader from '../components/Loader';
+import { useState } from 'react';
 
 export default function Home() {
 
   let {user,logout,loding, lastLogin} = AppData()
   const createdAtDate = new Date(user.user.createdAt);
   const formattedDate = (date) =>moment(date).format('MMMM Do YYYY, h:mm:ss a')
+  const [isEditing, setIsEditing] = useState(false);
 
   
   const logoutHandler = async() => {
@@ -16,7 +18,91 @@ export default function Home() {
     await logout()
     
   }
-  return (
+  if(isEditing){
+    return(
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-2xl p-8 w-full max-w-md">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-gray-800">Edit Profile</h3>
+              <button
+                // onClick={handleCancel}
+                className="text-gray-500 hover:text-gray-700 transition"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              <div className="flex flex-col items-center">
+                <img
+                  // src={tempProfilePic}
+                  alt="Preview"
+                  className="w-24 h-24 rounded-full mb-4 object-cover border-4 border-blue-500"
+                />
+                <label className="relative cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    // onChange={handleProfilePicChange}
+                    className="hidden"
+                  />
+                  <div className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition">
+                    <Upload size={18} />
+                    <span>Change Photo</span>
+                  </div>
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Name
+                </label>
+                <input
+                  type="text"
+                  // value={tempName}
+                  // onChange={(e) => setTempName(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter your name"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  // value={email}
+                  disabled
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+                />
+                <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  // onClick={handleCancel}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  // onClick={handleSave}
+                  className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      
+    </div>
+  );
+  }else{
+    return (
+    
     <div className="min-h-screen bg-neutral-50">
       {/* Modern Header */}
       <header className="bg-white border-b border-neutral-200">
@@ -64,7 +150,7 @@ export default function Home() {
                      {formattedDate(createdAtDate)}
                   </div>
                 </div>
-                <button className="px-6 py-3 bg-neutral-900 text-white rounded-lg font-medium hover:bg-neutral-800 transition-colors">
+                <button onClick={() => setIsEditing(!isEditing)} className="px-6 py-3 bg-neutral-900 text-white rounded-lg font-medium hover:bg-neutral-800 transition-colors">
                   Edit Profile
                 </button>
               </div>
@@ -96,4 +182,5 @@ export default function Home() {
       </div>
     </div>
   );
+ }
 }

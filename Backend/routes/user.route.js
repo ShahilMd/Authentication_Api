@@ -1,5 +1,6 @@
 import express from 'express'
 import {
+    changePassword,
     editProfile,
     loginUser,
     logout,
@@ -26,6 +27,7 @@ userRouter.post('/login/verify/otp',verifyOtp)
 userRouter.post('/login/verify/resend/otp',reSendOtp)
 userRouter.get('/profile',isAuthenticated,profile)
 userRouter.post('/profile/edit',isAuthenticated,verifyCsrfToken,upload,editProfile)
+userRouter.post('/profile/change/password',isAuthenticated,verifyCsrfToken,changePassword)
 userRouter.post('/refresh',refreshToken)
 userRouter.post('/logout',isAuthenticated,verifyCsrfToken,logout)
 userRouter.post('/refresh/csrf',isAuthenticated, refreshCSRFToken)
