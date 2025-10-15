@@ -35,12 +35,48 @@ export const AppProvider = ({children}) => {
    }
   }
 
+  async function EditProfile(name,profileImg) {
+      setLoding(true);
+      const csrfToken = await getCsrfToken();
+      try {
+          const formData = new FormData();
+          formData.append('name', name);
+          if (profileImg) {
+              formData.append('profileImg', profileImg); // send file, not base64 string
+          }
+          const { data } = await axios.post(`${server}/api/v1/profile/edit`, formData, {
+              withCredentials: true,
+              headers: {
+                  'x-csrf-token': csrfToken,
+                  'Content-Type': 'multipart/form-data'
+              }
+          });
+          console.log(data)
+          toast.success(data.message);
+          setUser(data);
+      } catch (error) {
+          console.log(error);
+          if(error.response?.data?.code === 'CSRF_TOKEN_EXPIRED' || error.response?.data?.code === 'CSRF_TOKEN_MISSING') {
+              // Refresh CSRF token and retry
+              await axios.post(`${server}/api/v1/refresh/csrf`, {}, { withCredentials: true });
+              // Retry logout
+              await EditProfile();
+          }else{
+              console.log(error.response.data.message);
+              toast(error.response.data.message)
+          }
+      }finally{
+          setLoding(false)
+      }
+
+  }
+
   function getCsrfToken(){
       const match = document.cookie.match(/csrfToken=([^;]+)/);
       return match ? match[1] : null;
   }
 
-  async function logout() { 
+  async function logout() {
     setLoding(true)
       const csrfToken = await  getCsrfToken();
     try {
@@ -72,7 +108,7 @@ export const AppProvider = ({children}) => {
     fetchUser()
   }, [])
 
-  return <AppContext.Provider value={{user,setIsAuth,setUser,isAuth,loding,logout,fetchUser,setLastLogin,lastLogin}}>{children}</AppContext.Provider>
+  return <AppContext.Provider value={{user,setIsAuth,setUser,isAuth,loding,logout,fetchUser,setLastLogin,lastLogin,EditProfile}}>{children}</AppContext.Provider>
 }
 
 export const AppData =() => {

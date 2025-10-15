@@ -114,7 +114,8 @@ export const registerUser = asyncHandler(async(req,res) => {
   })
   
   // sending response 
-  res.json({
+  res.status(200).json({
+    success:true,
     message:"Verification link sent to your email, Please verify your email",
   })
 })
