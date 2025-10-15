@@ -14,6 +14,7 @@ import cloudinary from "../config/cloudinary.js";
 import DataURIParser from "datauri/parser.js";
 import path from "path";
 import {getBuffer} from "../config/getBuffer.js";
+import { success } from "zod";
 
 
 
@@ -45,6 +46,7 @@ export const registerUser = asyncHandler(async(req,res) => {
       firstError = allError[0]?.message || 'Validation failed'
     } 
     return res.status(400).json({
+      success:false,
       message:firstError,
       errors:allError
     })
@@ -60,6 +62,7 @@ export const registerUser = asyncHandler(async(req,res) => {
   // checking if ratelimit key is present in redis and its true then send response 
   if(await redisClient.get(reteLimitKey)){
     return res.status(400).json({
+      success:false,
       message:"Too many requests, try again later",
     })
   }
@@ -70,6 +73,7 @@ export const registerUser = asyncHandler(async(req,res) => {
   // if it exist then we return response 
   if(existingUser){
     return res.status(400).json({
+      success:false,
       message:"User already exist",
     })
   }
