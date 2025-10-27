@@ -5,19 +5,32 @@ import moment from 'moment'
 import Loader from '../components/Loader';
 import React, { useState } from 'react';
 import {useNavigate} from "react-router-dom";
+import toast from 'react-hot-toast';
 
 export default function Home() {
 
   let {user,logout,loding, lastLogin} = AppData()
   const createdAtDate = new Date(user.user.createdAt);
-  const formattedDate = (date) =>moment(date).format('MMMM Do YYYY, h:mm:ss a')
+  const formattedDate = function(date){
+    const newDate = new Date(date)
+    const formatDate = newDate.toLocaleString('en-IN',{
+      weekday:'short',
+      month:'short',
+      day:'numeric',
+      year: 'numeric',     
+      hour: '2-digit',     
+      minute: '2-digit',   
+      hour12: true         
+    })
+    return formatDate
+  }
   const navigate = useNavigate()
 
   
   const logoutHandler = async() => {
     console.log('Logout click');
-    await logout()
-    
+    await logout(navigate)
+
   }
     return (
     <div className="min-h-screen bg-neutral-50">

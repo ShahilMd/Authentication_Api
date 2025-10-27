@@ -232,11 +232,11 @@ export const loginUser = asyncHandler(async(req,res) => {
   const subject = "Otp for validation";
   const html = getOtpHtml(otp);
 
-  // await sendMail({
-  //   email,
-  //   subject,
-  //   html
-  // })
+  await sendMail({
+    email,
+    subject,
+    html
+  })
 
   await redisClient.set(ratelimitKey,'true',{
     EX:60
@@ -263,11 +263,11 @@ export const reSendOtp = asyncHandler(async(req,res) => {
     const subject = "Otp for validation";
   const html = getOtpHtml(otp);
 
-  // await sendMail({
-  //   email,
-  //   subject,
-  //   html
-  // })
+  await sendMail({
+    email,
+    subject,
+    html
+  })
 
   await redisClient.set(ratelimitKey,'true',{
     EX:60

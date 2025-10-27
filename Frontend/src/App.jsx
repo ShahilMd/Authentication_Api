@@ -3,7 +3,7 @@ import {BrowserRouter , Route, Routes} from 'react-router-dom'
 import Home from './pages/Home'
 import Login from './pages/Login'
 import Register from './pages/Register'
-import {ToastContainer} from 'react-toastify'
+import { Toaster } from 'react-hot-toast';
 import Verifyotp from './pages/Verifyotp'
 import { AppData } from './Context/AppContext'
 import Dashboard from './pages/Dashboard'
@@ -31,7 +31,7 @@ function App() {
           <Route path='/verify-otp' element={isAuth? <Home/>:<Verifyotp/>}/>
           <Route path='/dashboard' element={isAuth ? <Dashboard/> : <Login/>}/>
         </Routes>
-          <ToastContainer />
+          <Toaster/>
       </BrowserRouter>)
     }
     </>

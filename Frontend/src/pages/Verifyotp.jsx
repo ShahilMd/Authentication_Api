@@ -3,7 +3,7 @@ import { Mail, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from "axios";
 import {server} from "../main.jsx";
-import {toast} from "react-toastify";
+import toast from "react-hot-toast";
 import Loader from "../components/Loader.jsx";
 import { AppData } from '../Context/AppContext.jsx';
 

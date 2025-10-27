@@ -3,7 +3,7 @@ import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { Link ,useNavigate} from 'react-router-dom';
 import axios from 'axios';
 import { server } from '../main';
-import { toast } from 'react-toastify';
+import  toast  from 'react-hot-toast';
 import Loader from '../components/Loader'
 import {AppData} from "../Context/AppContext.jsx";
 

@@ -6,7 +6,7 @@ import {generateCsrfToken, revokeCsrfToken} from "./csrfToken.js";
 
 export const generateToken =async (id, res) => {
   const accessToken = jwt.sign({id},process.env.JWT_SECRET,{
-    expiresIn:'1m'
+    expiresIn:'15m'
   });
 
   const refreshToken = jwt.sign({id},process.env.JWT_REFRESH_SECRET,{
@@ -21,7 +21,7 @@ export const generateToken =async (id, res) => {
     httpOnly:true,
     secure:true,
     sameSite:"none",
-    maxAge:60*1000
+    maxAge:15*60*1000
   })
   res.cookie("refreshToken",refreshToken,{
     httpOnly:true,
@@ -55,13 +55,15 @@ export const verifyRefresh = async(token)=>{
 
 export const generateAccessToken = (id,res) => {
 
-  const accessToken = jwt.sign({id},process.env.JWT_SECRET)
+  const accessToken = jwt.sign({id},process.env.JWT_SECRET,{
+    expiresIn:"15m"
+  })
 
    return res.cookie("accessToken",accessToken,{
     httpOnly:true,
     secure:true,
     sameSite:"none",
-    maxAge:60*1000
+    maxAge:15*60*1000
   })
 }
 

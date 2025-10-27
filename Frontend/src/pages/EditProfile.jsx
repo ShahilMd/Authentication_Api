@@ -7,7 +7,7 @@ import CenterLoader from "../components/CenterLoader.jsx";
 
 const EditProfile = () => {
     // Initial state for user data (in a real app, fetch this from an API or context)
-    const {user,loding,EditProfile} = AppData()
+    const {user,loding,EditProfile,ChangePassword} = AppData()
     const [name, setName] = useState(user.user.name); // Editable name
     const [profileImage, setProfileImage] = useState('https://via.placeholder.com/150'); // Initial image URL
     const [newImage, setNewImage] = useState(null); // For the new selected image file
@@ -33,16 +33,22 @@ const EditProfile = () => {
 
     // Handler for updating profile (name and image)
     const handleUpdateProfile =async () => {
+        console.log(`start updating profile`);
+        
         await EditProfile(name,newImage)
+        navigate('/')
+        console.log('navigate to home');
+        
     };
 
     // Handler for changing password
-    const handleChangePassword = () => {
+    const handleChangePassword =async () => {
+         
         if (oldPassword && newPassword) {
             console.log('Changing password...');
             console.log('Old Password:', oldPassword);
             console.log('New Password:', newPassword);
-            alert('Password changed successfully!');
+            await ChangePassword(newPassword,oldPassword)
             setOldPassword(''); // Clear inputs
             setNewPassword('');
         } else {
@@ -132,7 +138,7 @@ const EditProfile = () => {
                     <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-600 mb-2">Old Password</label>
                         <input
-                            type="password"
+                            type="text"
                             value={oldPassword}
                             onChange={(e) => setOldPassword(e.target.value)}
                             className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200 bg-gray-50"
@@ -143,7 +149,7 @@ const EditProfile = () => {
                     <div className="mb-6">
                         <label className="block text-sm font-medium text-gray-600 mb-2">New Password</label>
                         <input
-                            type="password"
+                            type="text"
                             value={newPassword}
                             onChange={(e) => setNewPassword(e.target.value)}
                             className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200 bg-gray-50"
