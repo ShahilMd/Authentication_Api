@@ -219,6 +219,8 @@ export const loginUser = asyncHandler(async(req,res) => {
   }
 
   const isPasswordMatch = await bcrypt.compare(password,user.password)
+  console.log('isPassword Match',isPasswordMatch);
+  
 
   if(!isPasswordMatch){
     return res.status(400).json({
@@ -227,6 +229,8 @@ export const loginUser = asyncHandler(async(req,res) => {
   }
 
   const otp = Math.floor(100000 + Math.random()* 900000).toString();
+  console.log(otp);
+  
 
   const otpKey = `otp:${email}`;
   await redisClient.set(otpKey,JSON.stringify(otp),{
