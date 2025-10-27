@@ -5,7 +5,7 @@ import 'react-toastify/dist/ReactToastify.css'
 import App from './App.jsx'
 import { AppProvider } from './Context/AppContext.jsx'
 
-export const server = 'http://localhost:4001'
+export const server = 'https://authentication-api-cwuo.onrender.com'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
