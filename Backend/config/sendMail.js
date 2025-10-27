@@ -1,67 +1,52 @@
-import { createTransport } from 'nodemailer'
+// ...existing code...
+import sgMail from '@sendgrid/mail'
 
-const SMTP_USER = process.env.SMTP_USER
-const SMTP_PASSWORD = process.env.SMTP_PASSWORD
-const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com'
-const SMTP_PORT = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 465
-const SMTP_SECURE = process.env.SMTP_SECURE ? process.env.SMTP_SECURE === 'true' : (SMTP_PORT === 465)
+const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY
+const FROM_EMAIL = process.env.FROM_EMAIL || process.env.SMTP_USER
 
-// Basic env check
-if (!SMTP_USER || !SMTP_PASSWORD) {
-  console.warn('SMTP_USER or SMTP_PASSWORD is not set. Email sending will fail in production.')
+if (!SENDGRID_API_KEY) {
+  console.warn('SENDGRID_API_KEY not set. Email sending will fail.')
 }
 
-// create a single reusable transporter with sensible timeouts
-const transport = createTransport({
-  host: SMTP_HOST,
-  port: SMTP_PORT,
-  secure: SMTP_SECURE,
-  auth: {
-    user: SMTP_USER,
-    pass: SMTP_PASSWORD,
-  },
-  // timeouts (ms)
-  connectionTimeout: 10000,
-  greetingTimeout: 5000,
-  socketTimeout: 10000,
-  tls: {
-    // set based on your provider; remove/adjust if not needed
-    rejectUnauthorized: false
-  }
-})
+sgMail.setApiKey(SENDGRID_API_KEY)
 
-// optional: verify transporter on startup (non-blocking)
-transport.verify().then(() => {
-  console.log('SMTP transporter verified')
-}).catch(err => {
-  console.warn('SMTP transporter verification failed:', err.message)
-})
-
-const sendMail = async ({ email, subject, html }) => {
-  if (!SMTP_USER || !SMTP_PASSWORD) {
-    throw new Error('SMTP configuration missing')
-  }
-
-  const mailOptions = {
-    from: SMTP_USER,
-    to: email,
-    subject,
-    html
-  }
-
-  // wrap sendMail with a timeout so it never hangs indefinitely
-  const sendPromise = transport.sendMail(mailOptions)
+const sendWithTimeout = (msg, ms) => {
+  const sendPromise = sgMail.send(msg)
   const timeout = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('SMTP send timeout')), 15000)
+    setTimeout(() => reject(new Error('SendGrid send timeout')), ms)
   )
+  return Promise.race([sendPromise, timeout])
+}
 
-  try {
-    const result = await Promise.race([sendPromise, timeout])
-    return result
-  } catch (err) {
-    // log and rethrow so caller can handle/respond
-    console.error('sendMail error:', err.message || err)
-    throw err
+/**
+ * sendMail({ email, subject, html, text, maxRetries })
+ */
+const sendMail = async ({ email, subject, html, text, maxRetries = 1 }) => {
+  if (!SENDGRID_API_KEY || !FROM_EMAIL) {
+    throw new Error('SendGrid configuration missing (SENDGRID_API_KEY or FROM_EMAIL)')
+  }
+
+  const msg = {
+    to: email,
+    from: FROM_EMAIL,
+    subject,
+    html,
+    text,
+  }
+
+  let attempt = 0
+  while (attempt <= maxRetries) {
+    try {
+      // 15s timeout per attempt
+      await sendWithTimeout(msg, 15_000)
+      return true
+    } catch (err) {
+      attempt += 1
+      console.error(`sendMail attempt ${attempt} failed:`, err.message || err)
+      if (attempt > maxRetries) throw err
+      // small backoff
+      await new Promise(r => setTimeout(r, 1000 * attempt))
+    }
   }
 }
 
