@@ -3,8 +3,8 @@ dotenv.config();
 
 import { createTransport } from "nodemailer";
 
-const SMTP_HOST = (process.env.SMTP_HOST || "smtp-relay.brevo.com").trim();
-const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
+const SMTP_HOST = (process.env.SMTP_HOST).trim();
+const SMTP_PORT = Number(process.env.SMTP_PORT);
 const SMTP_USER = (process.env.BREVO_SMTP_USER || process.env.SMTP_USER || "").trim(); // e.g. 896454001@smtp-brevo.com
 const SMTP_PASS = (process.env.BREVO_SMTP_KEY || process.env.BREVO_SMTP_PASS || "").trim(); // xsmtp_...
 const FROM_EMAIL = (process.env.FROM_EMAIL || process.env.SMTP_FROM || SMTP_USER || "").trim();
@@ -23,10 +23,12 @@ const transporter = createTransport({
   port: SMTP_PORT,
   secure: SMTP_PORT === 465, // use TLS on 465, STARTTLS on 587 (secure=false)
   auth: SMTP_USER && SMTP_PASS ? { user: SMTP_USER, pass: SMTP_PASS } : undefined,
-  connectionTimeout: 15000,
-  greetingTimeout: 7000,
-  socketTimeout: 15000,
-  tls: { rejectUnauthorized: false }, // allow provider certs; set true if you want strict validation
+  logger: true,        // enable nodemailer logging
+  debug: true,         // show SMTP conversation
+  connectionTimeout: 30000,
+  greetingTimeout: 10000,
+  socketTimeout: 30000,
+  tls: { rejectUnauthorized: false },
   pool: true,
   maxConnections: 5,
 });
