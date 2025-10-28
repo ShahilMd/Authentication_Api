@@ -240,16 +240,12 @@ export const loginUser = asyncHandler(async(req,res) => {
   const subject = "Otp for validation";
   const html = getOtpHtml(otp);
 
-  try {
-    await sendMail({
+  await sendMail({
       email,
       subject,
       html
   })
-  } catch (error) {
-   console.error('Failed to send email:', err.message || err)
-  return res.status(500).json({ message: 'Unable to send email right now. Please try again later.' })
-}
+
 
   
 
