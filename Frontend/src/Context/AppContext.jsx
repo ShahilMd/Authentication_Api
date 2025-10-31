@@ -35,14 +35,21 @@ export const AppProvider = ({ children }) => {
     }
   }
 
-  async function ChangePassword(newPass, oldPass) {
+  async function ChangePassword(newPass, oldPass, retryCount = 0, customCsrfToken = null) {
     setLoding(true)
     const newPassword = newPass.toString()
     const oldPassword = oldPass.toString()
-    const csrfToken = getCsrfToken();
+    const csrfToken = customCsrfToken || getCsrfToken();
+
     if (newPassword === oldPassword) {
       toast.error('New password must be different from old password')
-      console.log('New password must be differnt from old Password');
+      console.log('New password must be different from old password');
+      setLoding(false)
+      return
+    }
+
+    if (!csrfToken) {
+      toast.error('No CSRF token available. Please refresh the page.');
       setLoding(false)
       return
     }
@@ -61,12 +68,13 @@ export const AppProvider = ({ children }) => {
       toast.success(data.message);
       fetchUser()
     } catch (error) {
-      if (error.response?.data?.code === 'CSRF_TOKEN_EXPIRED' || error.response?.data?.code === 'CSRF_TOKEN_MISSING') {
+      if ((error.response?.data?.code === 'CSRF_TOKEN_EXPIRED' || error.response?.data?.code === 'CSRF_TOKEN_MISSING') && retryCount < 1) {
         try {
           // Refresh CSRF token and retry
-          await axios.post(`${server}/api/v1/refresh/csrf`, {}, { withCredentials: true });
-          // Retry change password once
-          await ChangePassword(newPass, oldPass);
+          const { data: csrfData } = await axios.post(`${server}/api/v1/refresh/csrf`, {}, { withCredentials: true });
+          console.log('New CSRF token for password change:', csrfData.csrfToken);
+          // Retry change password with new token
+          await ChangePassword(newPass, oldPass, retryCount + 1, csrfData.csrfToken);
         } catch (retryError) {
           console.log('Failed to retry after CSRF refresh:', retryError);
           toast.error('Failed to change password. Please try again.');
@@ -80,11 +88,17 @@ export const AppProvider = ({ children }) => {
     }
   }
 
-  async function EditProfile(name, profileImg, retryCount = 0) {
+  async function EditProfile(name, profileImg, retryCount = 0, customCsrfToken = null) {
     setLoding(true);
 
     try {
-      const csrfToken = getCsrfToken();
+      const csrfToken = customCsrfToken || getCsrfToken();
+
+      console.log('Using CSRF token:', csrfToken);
+
+      if (!csrfToken) {
+        throw new Error('No CSRF token available');
+      }
 
       const formData = new FormData();
       formData.append('name', name);
@@ -102,18 +116,16 @@ export const AppProvider = ({ children }) => {
       toast.success(data.message);
       setUser(data.user); // Make sure to use data.user based on your backend response
     } catch (error) {
-      console.log(error);
+      console.log('EditProfile error:', error);
       if ((error.response?.data?.code === 'CSRF_TOKEN_EXPIRED' || error.response?.data?.code === 'CSRF_TOKEN_MISSING') && retryCount < 1) {
         try {
+          console.log('Refreshing CSRF token...');
           // Refresh CSRF token and get the new token
           const { data: csrfData } = await axios.post(`${server}/api/v1/refresh/csrf`, {}, { withCredentials: true });
           console.log('New CSRF token received:', csrfData.csrfToken);
 
-          // Wait a bit for the cookie to be set
-          await new Promise(resolve => setTimeout(resolve, 200));
-
-          // Retry edit profile with the same parameters and increment retry count
-          await EditProfile(name, profileImg, retryCount + 1);
+          // Use the token directly from the response instead of waiting for cookie
+          await EditProfile(name, profileImg, retryCount + 1, csrfData.csrfToken);
         } catch (retryError) {
           console.log('Failed to retry after CSRF refresh:', retryError);
           toast.error('Failed to update profile. Please try again.');
@@ -132,9 +144,9 @@ export const AppProvider = ({ children }) => {
     return match ? match[1] : null;
   }
 
-  async function logout(navigate) {
+  async function logout(navigate, retryCount = 0, customCsrfToken = null) {
     setLoding(true)
-    const csrfToken = getCsrfToken();
+    const csrfToken = customCsrfToken || getCsrfToken();
     try {
       const { data } = await axios.post(`${server}/api/v1/logout`, {}, {
         withCredentials: true,
@@ -146,16 +158,25 @@ export const AppProvider = ({ children }) => {
       toast.success(data.message)
       setUser(null)
       setIsAuth(false)
-      navigate('/login')
+      if (navigate) navigate('/login')
     } catch (error) {
-      if (error.response?.data?.code === 'CSRF_TOKEN_EXPIRED' || error.response?.data?.code === 'CSRF_TOKEN_MISSING') {
-        // Refresh CSRF token and retry
-        await axios.post(`${server}/api/v1/refresh/csrf`, {}, { withCredentials: true });
-        // Retry logout
-        await logout();
+      if ((error.response?.data?.code === 'CSRF_TOKEN_EXPIRED' || error.response?.data?.code === 'CSRF_TOKEN_MISSING') && retryCount < 1) {
+        try {
+          // Refresh CSRF token and retry
+          const { data: csrfData } = await axios.post(`${server}/api/v1/refresh/csrf`, {}, { withCredentials: true });
+          console.log('New CSRF token for logout:', csrfData.csrfToken);
+          // Retry logout with new token
+          await logout(navigate, retryCount + 1, csrfData.csrfToken);
+        } catch (retryError) {
+          console.log('Failed to retry logout after CSRF refresh:', retryError);
+          // Force logout even if CSRF fails
+          setUser(null)
+          setIsAuth(false)
+          if (navigate) navigate('/login')
+        }
       } else {
-        console.log(error.response.data.message);
-        toast(error.response.data.message)
+        console.log(error.response?.data?.message);
+        toast.error(error.response?.data?.message || 'Logout failed')
       }
     } finally {
       setLoding(false)
