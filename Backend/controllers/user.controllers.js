@@ -106,11 +106,18 @@ export const registerUser = asyncHandler(async(req,res) => {
   const html = getVerifyEmailHtml(email,verifyToken); 
 
   // send mail
-  await sendMail({
+  const emailResult = await sendMail({
     email,
     subject,
     html
   })
+
+  if (!emailResult.success) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to send verification email. Please try again.",
+    })
+  }
 
   // and now after sending the mail we set ratelimit key to redis for 60 second.
   await redisClient.set(reteLimitKey,'true',{
@@ -219,7 +226,7 @@ export const loginUser = asyncHandler(async(req,res) => {
   }
 
   const isPasswordMatch = await bcrypt.compare(password,user.password)
-  console.log('isPassword Match',isPasswordMatch);
+  console.log(`isPassword Matched ${isPasswordMatch}`);
   
 
   if(!isPasswordMatch){
@@ -241,13 +248,10 @@ export const loginUser = asyncHandler(async(req,res) => {
   const html = getOtpHtml(otp);
 
   await sendMail({
-      email,
-      subject,
-      html
+    email,
+    subject,
+    html
   })
-
-
-  
 
   await redisClient.set(ratelimitKey,'true',{
     EX:60
