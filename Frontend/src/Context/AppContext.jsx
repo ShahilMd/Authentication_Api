@@ -90,10 +90,10 @@ export const AppProvider = ({ children }) => {
     }
   }
 
-  async function EditProfile(name, profileImg, retryCount = 0, customCsrfToken = null) {
+  async function EditProfile(name, profileImg, retryCount = 0,) {
     setLoding(true);
     try {
-      const csrfToken = customCsrfToken === null ? getCsrfToken() : customCsrfToken
+      const csrfToken = getCsrfToken()
       console.log(csrfToken);
 
       if (!csrfToken) {
@@ -113,6 +113,7 @@ export const AppProvider = ({ children }) => {
           'Content-Type': 'multipart/form-data'
         }
       });
+      console.log(data);
       
       toast.success(data.message);
       setUser(data);
@@ -125,7 +126,7 @@ export const AppProvider = ({ children }) => {
           console.log('New CSRF token received:', csrfData.csrfToken);
 
           // Use the token directly from the response instead of waiting for cookie
-          await EditProfile(name, profileImg, retryCount + 1, csrfData.csrfToken);
+          await EditProfile(name, profileImg, retryCount + 1);
         } catch (retryError) {
           console.error('Failed to retry after CSRF refresh:', retryError);
           toast.error('Failed to update profile after token refresh. Please try again.');
