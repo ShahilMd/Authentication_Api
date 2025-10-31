@@ -1,31 +1,30 @@
 
 
-const sendMail = async (email,subject,html)=>{
-  const response = await fetch('https://api.resend.com/emails',{
-    method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'Authorization':`Bearer ${RESEND_API_KEY}`
+const sendMail = async ({email, subject, html}) => {
+  const RESEND_API_KEY = process.env.RESEND_API_KEY;
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${RESEND_API_KEY}`,
     },
     body: JSON.stringify({
-      from: "Authenticator <noreply@authenticator.com>",
-      to:[email],
-      subject:subject,
-      text:html
-    })
-  })
+      from: "onboarding@resend.dev", 
+      to: [email],                     
+      subject: subject,
+      html: html,
+    }),
+  });
 
-  if(!response.ok){
-    const errorData = await response.json();
-    throw new Error(
-      `resend api error ${errorData.error?.message}`
-    )
+  const data = await response.json();
+
+  if (!response.ok) {
+    console.error("Resend API Error:", data);
+    throw new Error(`Resend API Error: ${JSON.stringify(data)}`);
   }
-  const emailResult = await response.json();
 
-  console.info("sending email --- ",emailResult);
-  
-
-}
+  console.info("Email sent successfully:", data);
+};
 
 export default sendMail;
