@@ -92,26 +92,20 @@ export const AppProvider = ({ children }) => {
 
   async function EditProfile(name, profileImg, retryCount = 0, customCsrfToken = null) {
     setLoding(true);
-
     try {
-      const csrfToken = customCsrfToken || getCsrfToken();
-
-      console.log('EditProfile called with:', { name, profileImg: !!profileImg, retryCount, csrfToken: !!csrfToken });
+      const csrfToken = customCsrfToken || getCsrfToken()
+      console.log(csrfToken);
 
       if (!csrfToken) {
         toast.error('No CSRF token available. Please refresh the page.');
         return;
       }
+      const formData = new FormData()
+      formData.append('name',name)
 
-      const formData = new FormData();
-      formData.append('name', name);
-      if (profileImg) {
-        formData.append('profileImg', profileImg);
-        console.log('Profile image added to FormData:', profileImg.name, profileImg.size);
+      if(profileImg){
+          formData.append('profileImg', profileImg);
       }
-
-      console.log('Making request to:', `${server}/api/v1/profile/edit`);
-
       const { data } = await axios.post(`${server}/api/v1/profile/edit`, formData, {
         withCredentials: true,
         headers: {
@@ -119,22 +113,12 @@ export const AppProvider = ({ children }) => {
           'Content-Type': 'multipart/form-data'
         }
       });
-
-      console.log('EditProfile success response:', data);
+      
       toast.success(data.message);
-      // Backend returns { message: "...", user: userData }
       setUser(data);
 
     } catch (error) {
-      console.error('EditProfile error details:', {
-        message: error.message,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        headers: error.response?.headers
-      });
-
-      if ((error.response?.data?.code === 'CSRF_TOKEN_EXPIRED' || error.response?.data?.code === 'CSRF_TOKEN_MISSING') && retryCount < 1) {
+          if ((error.response?.data?.code === 'CSRF_TOKEN_EXPIRED' || error.response?.data?.code === 'CSRF_TOKEN_MISSING') && retryCount < 1) {
         try {
           console.log('Refreshing CSRF token...');
           const { data: csrfData } = await axios.post(`${server}/api/v1/refresh/csrf`, {}, { withCredentials: true });
@@ -151,9 +135,10 @@ export const AppProvider = ({ children }) => {
         console.error('EditProfile final error:', errorMessage);
         toast.error(errorMessage);
       }
-    } finally {
+    }finally {
       setLoding(false)
     }
+
   }
 
   function getCsrfToken() {
