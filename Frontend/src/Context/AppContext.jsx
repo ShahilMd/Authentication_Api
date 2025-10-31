@@ -20,14 +20,16 @@ export const AppProvider = ({ children }) => {
       const { data } = await axios.get(`${server}/api/v1/profile`, {
         withCredentials: true
       })
+      console.log('fetchUser response:', data);
       if (!data) {
         setUser(null)
         setIsAuth(false)
+        return;
       }
       setUser(data)
       setIsAuth(true)
     } catch (error) {
-      console.log(error);
+      console.log('fetchUser error:', error);
       setIsAuth(false)
       setUser(null)
     } finally {
@@ -94,17 +96,22 @@ export const AppProvider = ({ children }) => {
     try {
       const csrfToken = customCsrfToken || getCsrfToken();
 
-      console.log('Using CSRF token:', csrfToken);
+      console.log('EditProfile called with:', { name, profileImg: !!profileImg, retryCount, csrfToken: !!csrfToken });
 
       if (!csrfToken) {
-        throw new Error('No CSRF token available');
+        toast.error('No CSRF token available. Please refresh the page.');
+        return;
       }
 
       const formData = new FormData();
       formData.append('name', name);
       if (profileImg) {
-        formData.append('profileImg', profileImg); // send file, not base64 string
+        formData.append('profileImg', profileImg);
+        console.log('Profile image added to FormData:', profileImg.name, profileImg.size);
       }
+
+      console.log('Making request to:', `${server}/api/v1/profile/edit`);
+
       const { data } = await axios.post(`${server}/api/v1/profile/edit`, formData, {
         withCredentials: true,
         headers: {
@@ -112,27 +119,37 @@ export const AppProvider = ({ children }) => {
           'Content-Type': 'multipart/form-data'
         }
       });
-      console.log(data)
+
+      console.log('EditProfile success response:', data);
       toast.success(data.message);
-      setUser(data.user); // Make sure to use data.user based on your backend response
+      // Backend returns { message: "...", user: userData }
+      setUser(data);
+
     } catch (error) {
-      console.log('EditProfile error:', error);
+      console.error('EditProfile error details:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        headers: error.response?.headers
+      });
+
       if ((error.response?.data?.code === 'CSRF_TOKEN_EXPIRED' || error.response?.data?.code === 'CSRF_TOKEN_MISSING') && retryCount < 1) {
         try {
           console.log('Refreshing CSRF token...');
-          // Refresh CSRF token and get the new token
           const { data: csrfData } = await axios.post(`${server}/api/v1/refresh/csrf`, {}, { withCredentials: true });
           console.log('New CSRF token received:', csrfData.csrfToken);
 
           // Use the token directly from the response instead of waiting for cookie
           await EditProfile(name, profileImg, retryCount + 1, csrfData.csrfToken);
         } catch (retryError) {
-          console.log('Failed to retry after CSRF refresh:', retryError);
-          toast.error('Failed to update profile. Please try again.');
+          console.error('Failed to retry after CSRF refresh:', retryError);
+          toast.error('Failed to update profile after token refresh. Please try again.');
         }
       } else {
-        console.log(error.response?.data?.message);
-        toast.error(error.response?.data?.message || 'Failed to update profile')
+        const errorMessage = error.response?.data?.message || error.message || 'Failed to update profile';
+        console.error('EditProfile final error:', errorMessage);
+        toast.error(errorMessage);
       }
     } finally {
       setLoding(false)

@@ -32,13 +32,17 @@ const EditProfile = () => {
     };
 
     // Handler for updating profile (name and image)
-    const handleUpdateProfile =async () => {
+    const handleUpdateProfile = async () => {
         console.log(`start updating profile`);
         
-        await EditProfile(name,newImage)
-        navigate('/')
-        console.log('navigate to home');
-        
+        try {
+            await EditProfile(name, newImage);
+            console.log('Profile updated successfully, navigating to home');
+            navigate('/');
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            // Don't navigate if there's an error
+        }
     };
 
     // Handler for changing password
