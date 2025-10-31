@@ -93,7 +93,7 @@ export const AppProvider = ({ children }) => {
   async function EditProfile(name, profileImg, retryCount = 0, customCsrfToken = null) {
     setLoding(true);
     try {
-      const csrfToken = customCsrfToken || getCsrfToken()
+      const csrfToken = customCsrfToken === null ? getCsrfToken() : customCsrfToken
       console.log(csrfToken);
 
       if (!csrfToken) {
