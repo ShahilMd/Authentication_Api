@@ -2,7 +2,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { server } from "../main.jsx";
 import axios from "axios";
-import  toast  from "react-hot-toast";
+import toast from "react-hot-toast";
 
 
 const AppContext = createContext();
@@ -48,7 +48,7 @@ export const AppProvider = ({ children }) => {
     }
 
     try {
-      const {data} = await axios.post(`${server}/api/v1/profile/change/password`, {
+      const { data } = await axios.post(`${server}/api/v1/profile/change/password`, {
         oldPassword,
         newPassword
       }, {
@@ -80,11 +80,12 @@ export const AppProvider = ({ children }) => {
     }
   }
 
-  async function EditProfile(name, profileImg) {
+  async function EditProfile(name, profileImg, retryCount = 0) {
     setLoding(true);
-    const csrfToken = await getCsrfToken();
 
     try {
+      const csrfToken = getCsrfToken();
+
       const formData = new FormData();
       formData.append('name', name);
       if (profileImg) {
@@ -99,22 +100,31 @@ export const AppProvider = ({ children }) => {
       });
       console.log(data)
       toast.success(data.message);
-      setUser(data);
+      setUser(data.user); // Make sure to use data.user based on your backend response
     } catch (error) {
       console.log(error);
-      if (error.response?.data?.code === 'CSRF_TOKEN_EXPIRED' || error.response?.data?.code === 'CSRF_TOKEN_MISSING') {
-        // Refresh CSRF token and retry
-        await axios.post(`${server}/api/v1/refresh/csrf`, {}, { withCredentials: true });
-        // Retry logout
-        await EditProfile();
+      if ((error.response?.data?.code === 'CSRF_TOKEN_EXPIRED' || error.response?.data?.code === 'CSRF_TOKEN_MISSING') && retryCount < 1) {
+        try {
+          // Refresh CSRF token and get the new token
+          const { data: csrfData } = await axios.post(`${server}/api/v1/refresh/csrf`, {}, { withCredentials: true });
+          console.log('New CSRF token received:', csrfData.csrfToken);
+
+          // Wait a bit for the cookie to be set
+          await new Promise(resolve => setTimeout(resolve, 200));
+
+          // Retry edit profile with the same parameters and increment retry count
+          await EditProfile(name, profileImg, retryCount + 1);
+        } catch (retryError) {
+          console.log('Failed to retry after CSRF refresh:', retryError);
+          toast.error('Failed to update profile. Please try again.');
+        }
       } else {
-        console.log(error.response.data.message);
-        toast(error.response.data.message)
+        console.log(error.response?.data?.message);
+        toast.error(error.response?.data?.message || 'Failed to update profile')
       }
     } finally {
       setLoding(false)
     }
-
   }
 
   function getCsrfToken() {
@@ -126,7 +136,7 @@ export const AppProvider = ({ children }) => {
     setLoding(true)
     const csrfToken = getCsrfToken();
     try {
-      const {data} = await axios.post(`${server}/api/v1/logout`, {}, {
+      const { data } = await axios.post(`${server}/api/v1/logout`, {}, {
         withCredentials: true,
         headers: {
           'x-csrf-token': csrfToken
