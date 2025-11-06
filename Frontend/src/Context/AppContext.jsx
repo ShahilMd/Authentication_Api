@@ -20,7 +20,7 @@ export const AppProvider = ({ children }) => {
       const { data } = await axios.get(`${server}/api/v1/profile`, {
         withCredentials: true
       })
-      console.log('fetchUser response:', data);
+
       if (!data) {
         setUser(null)
         setIsAuth(false)
