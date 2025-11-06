@@ -41,7 +41,7 @@ export const AppProvider = ({ children }) => {
     setLoding(true)
     const newPassword = newPass.toString()
     const oldPassword = oldPass.toString()
-    const csrfToken = customCsrfToken || getCsrfToken();
+    const csrfToken = customCsrfToken || await ensureCsrfToken();
 
     if (newPassword === oldPassword) {
       toast.error('New password must be different from old password')
@@ -90,21 +90,21 @@ export const AppProvider = ({ children }) => {
     }
   }
 
-  async function EditProfile(name, profileImg, retryCount = 0,) {
+  async function EditProfile(name, profileImg, retryCount = 0, customCsrfToken = null) {
     setLoding(true);
     try {
-      const csrfToken = getCsrfToken()
-      console.log(csrfToken);
+      const csrfToken = customCsrfToken || await ensureCsrfToken();
+      console.log('Using CSRF token:', csrfToken);
 
       if (!csrfToken) {
-        toast.error('No CSRF token available. Please refresh the page.');
+        toast.error('No CSRF token is available at this time. Please refresh the page.');
         return;
       }
       const formData = new FormData()
-      formData.append('name',name)
+      formData.append('name', name)
 
-      if(profileImg){
-          formData.append('profileImg', profileImg);
+      if (profileImg) {
+        formData.append('profileImg', profileImg);
       }
       const { data } = await axios.post(`${server}/api/v1/profile/edit`, formData, {
         withCredentials: true,
@@ -114,19 +114,19 @@ export const AppProvider = ({ children }) => {
         }
       });
       console.log(data);
-      
+
       toast.success(data.message);
       setUser(data);
 
     } catch (error) {
-          if ((error.response?.data?.code === 'CSRF_TOKEN_EXPIRED' || error.response?.data?.code === 'CSRF_TOKEN_MISSING') && retryCount < 1) {
+      if ((error.response?.data?.code === 'CSRF_TOKEN_EXPIRED' || error.response?.data?.code === 'CSRF_TOKEN_MISSING') && retryCount < 1) {
         try {
           console.log('Refreshing CSRF token...');
           const { data: csrfData } = await axios.post(`${server}/api/v1/refresh/csrf`, {}, { withCredentials: true });
           console.log('New CSRF token received:', csrfData.csrfToken);
 
           // Use the token directly from the response instead of waiting for cookie
-          await EditProfile(name, profileImg, retryCount + 1);
+          await EditProfile(name, profileImg, retryCount + 1, csrfData.csrfToken);
         } catch (retryError) {
           console.error('Failed to retry after CSRF refresh:', retryError);
           toast.error('Failed to update profile after token refresh. Please try again.');
@@ -136,20 +136,61 @@ export const AppProvider = ({ children }) => {
         console.error('EditProfile final error:', errorMessage);
         toast.error(errorMessage);
       }
-    }finally {
+    } finally {
       setLoding(false)
     }
 
   }
 
   function getCsrfToken() {
+    console.log('All cookies:', document.cookie);
+
+    // Try multiple approaches to get the CSRF token
+    const cookies = document.cookie.split(';');
+    console.log('Parsed cookies:', cookies);
+
+    for (let cookie of cookies) {
+      const [name, value] = cookie.trim().split('=');
+      if (name === 'csrfToken') {
+        console.log('Found CSRF token:', value);
+        return decodeURIComponent(value);
+      }
+    }
+
+    // Fallback to regex method
     const match = document.cookie.match(/csrfToken=([^;]+)/);
-    return match ? match[1] : null;
+    const token = match ? decodeURIComponent(match[1]) : null;
+    console.log('CSRF token from regex:', token);
+
+    if (!token) {
+      console.warn('No CSRF token found in cookies');
+      console.log('Available cookies:', document.cookie.split(';').map(c => c.trim().split('=')[0]));
+    }
+
+    return token;
+  }
+
+  // Helper function to manually refresh CSRF token
+  async function ensureCsrfToken() {
+    let token = getCsrfToken();
+    if (!token) {
+      console.log('No CSRF token found, requesting new one...');
+      try {
+        const { data } = await axios.post(`${server}/api/v1/refresh/csrf`, {}, { withCredentials: true });
+        console.log('New CSRF token obtained:', data.csrfToken);
+        // Wait a bit for cookie to be set
+        await new Promise(resolve => setTimeout(resolve, 100));
+        token = getCsrfToken();
+      } catch (error) {
+        console.error('Failed to get CSRF token:', error);
+      }
+    }
+    return token;
   }
 
   async function logout(navigate, retryCount = 0, customCsrfToken = null) {
     setLoding(true)
-    const csrfToken = customCsrfToken || getCsrfToken();
+    const csrfToken = customCsrfToken || await ensureCsrfToken();
     try {
       const { data } = await axios.post(`${server}/api/v1/logout`, {}, {
         withCredentials: true,
