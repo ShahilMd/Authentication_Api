@@ -37,11 +37,10 @@ export const AppProvider = ({ children }) => {
     }
   }
 
-  async function ChangePassword(newPass, oldPass, retryCount = 0, customCsrfToken = null) {
+  async function ChangePassword(newPass, oldPass) {
     setLoding(true)
     const newPassword = newPass.toString()
     const oldPassword = oldPass.toString()
-    const csrfToken = customCsrfToken || await ensureCsrfToken();
 
     if (newPassword === oldPassword) {
       toast.error('New password must be different from old password')
@@ -50,11 +49,6 @@ export const AppProvider = ({ children }) => {
       return
     }
 
-    if (!csrfToken) {
-      toast.error('No CSRF token available. Please refresh the page.');
-      setLoding(false)
-      return
-    }
 
     try {
       const { data } = await axios.post(`${server}/api/v1/profile/change/password`, {
@@ -62,44 +56,21 @@ export const AppProvider = ({ children }) => {
         newPassword
       }, {
         withCredentials: true,
-        headers: {
-          'x-csrf-token': csrfToken,
-        }
       })
       console.log(data)
       toast.success(data.message);
       fetchUser()
     } catch (error) {
-      if ((error.response?.data?.code === 'CSRF_TOKEN_EXPIRED' || error.response?.data?.code === 'CSRF_TOKEN_MISSING') && retryCount < 1) {
-        try {
-          // Refresh CSRF token and retry
-          const { data: csrfData } = await axios.post(`${server}/api/v1/refresh/csrf`, {}, { withCredentials: true });
-          console.log('New CSRF token for password change:', csrfData.csrfToken);
-          // Retry change password with new token
-          await ChangePassword(newPass, oldPass, retryCount + 1, csrfData.csrfToken);
-        } catch (retryError) {
-          console.log('Failed to retry after CSRF refresh:', retryError);
+          console.log('Failed to update password:', error);
           toast.error('Failed to change password. Please try again.');
-        }
-      } else {
-        console.log(error.response?.data?.message);
-        toast.error(error.response?.data?.message || 'Failed to change password')
-      }
     } finally {
       setLoding(false)
     }
   }
 
-  async function EditProfile(name, profileImg, retryCount = 0, customCsrfToken = null) {
+  async function EditProfile(name, profileImg) {
     setLoding(true);
     try {
-      const csrfToken = customCsrfToken || await ensureCsrfToken();
-      console.log('Using CSRF token:', csrfToken);
-
-      if (!csrfToken) {
-        toast.error('No CSRF token is available at this time. Please refresh the page.');
-        return;
-      }
       const formData = new FormData()
       formData.append('name', name)
 
@@ -109,7 +80,6 @@ export const AppProvider = ({ children }) => {
       const { data } = await axios.post(`${server}/api/v1/profile/edit`, formData, {
         withCredentials: true,
         headers: {
-          'x-csrf-token': csrfToken,
           'Content-Type': 'multipart/form-data'
         }
       });
@@ -119,23 +89,9 @@ export const AppProvider = ({ children }) => {
       setUser(data);
 
     } catch (error) {
-      if ((error.response?.data?.code === 'CSRF_TOKEN_EXPIRED' || error.response?.data?.code === 'CSRF_TOKEN_MISSING') && retryCount < 1) {
-        try {
-          console.log('Refreshing CSRF token...');
-          const { data: csrfData } = await axios.post(`${server}/api/v1/refresh/csrf`, {}, { withCredentials: true });
-          console.log('New CSRF token received:', csrfData.csrfToken);
-
-          // Use the token directly from the response instead of waiting for cookie
-          await EditProfile(name, profileImg, retryCount + 1, csrfData.csrfToken);
-        } catch (retryError) {
-          console.error('Failed to retry after CSRF refresh:', retryError);
-          toast.error('Failed to update profile after token refresh. Please try again.');
-        }
-      } else {
-        const errorMessage = error.response?.data?.message || error.message || 'Failed to update profile';
-        console.error('EditProfile final error:', errorMessage);
-        toast.error(errorMessage);
-      }
+      toast.error("Error While updating, please try again later")
+      console.log(error.message);
+      
     } finally {
       setLoding(false)
     }
@@ -143,54 +99,17 @@ export const AppProvider = ({ children }) => {
   }
 
   function getCsrfToken() {
-    console.log('All cookies:', document.cookie);
-
-    // Try multiple approaches to get the CSRF token
-    const cookies = document.cookie.split(';');
-    console.log('Parsed cookies:', cookies);
-
-    for (let cookie of cookies) {
-      const [name, value] = cookie.trim().split('=');
-      if (name === 'csrfToken') {
-        console.log('Found CSRF token:', value);
-        return decodeURIComponent(value);
-      }
-    }
-
     // Fallback to regex method
     const match = document.cookie.match(/csrfToken=([^;]+)/);
     const token = match ? decodeURIComponent(match[1]) : null;
-    console.log('CSRF token from regex:', token);
-
-    if (!token) {
-      console.warn('No CSRF token found in cookies');
-      console.log('Available cookies:', document.cookie.split(';').map(c => c.trim().split('=')[0]));
-    }
 
     return token;
   }
 
-  // Helper function to manually refresh CSRF token
-  async function ensureCsrfToken() {
-    let token = getCsrfToken();
-    if (!token) {
-      console.log('No CSRF token found, requesting new one...');
-      try {
-        const { data } = await axios.post(`${server}/api/v1/refresh/csrf`, {}, { withCredentials: true });
-        console.log('New CSRF token obtained:', data.csrfToken);
-        // Wait a bit for cookie to be set
-        await new Promise(resolve => setTimeout(resolve, 100));
-        token = getCsrfToken();
-      } catch (error) {
-        console.error('Failed to get CSRF token:', error);
-      }
-    }
-    return token;
-  }
 
   async function logout(navigate, retryCount = 0, customCsrfToken = null) {
     setLoding(true)
-    const csrfToken = customCsrfToken || await ensureCsrfToken();
+    const csrfToken = customCsrfToken || await getCsrfToken();
     try {
       const { data } = await axios.post(`${server}/api/v1/logout`, {}, {
         withCredentials: true,
