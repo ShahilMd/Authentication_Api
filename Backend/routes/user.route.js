@@ -29,32 +29,76 @@ const userRouter = express.Router()
 
 /**
  * @swagger
- * /api/user/register:
+ * /auth/register:
  *   post:
- *     summary: Register a new user
- *     tags: [Auth]
+ *     summary: Register a new user and send verification email
+ *     description: This endpoint registers a new user, validates input, sends a verification email, and applies rate limiting.
+ *     tags: [Authentication]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - password
  *             properties:
  *               name:
  *                 type: string
  *                 example: John Doe
  *               email:
  *                 type: string
- *                 example: john@example.com
+ *                 format: email
+ *                 example: johndoe@example.com
  *               password:
  *                 type: string
- *                 example: strongpassword123
+ *                 format: password
+ *                 example: MyStrongPassword@123
  *     responses:
  *       200:
- *         description: Verification link sent to user email
+ *         description: Verification email sent successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: Verification link sent to your email, Please verify your email
+ *
  *       400:
- *         description: Validation failed or user already exists
+ *         description: Validation failed, user exists, or too many requests
+ *         content:
+ *           application/json:
+ *             examples:
+ *               ValidationError:
+ *                 summary: Input validation failed
+ *                 value:
+ *                   success: false
+ *                   message: Validation failed
+ *                   errors:
+ *                     - field: email
+ *                       message: Invalid email address
+ *                       code: invalid_string
+ *               UserExists:
+ *                 summary: Email already registered
+ *                 value:
+ *                   success: false
+ *                   message: User already exist
+ *               RateLimit:
+ *                 summary: Too many registration attempts
+ *                 value:
+ *                   success: false
+ *                   message: Too many requests, try again later
+ *
+ *       500:
+ *         description: Internal server error (mail not sent)
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               message: Failed to send verification email. Please try again.
  */
+
 userRouter.post('/register', registerUser);
 
 /**
@@ -150,7 +194,7 @@ userRouter.post('/login/verify/otp', verifyOtp);
  *                 example: john@example.com
  *     responses:
  *       200:
- *         description: OTP resent successfully
+ *         description:Otp send to your email, it will be valid for 5 minutes
  */
 userRouter.post('/login/verify/resend/otp', reSendOtp);
 
@@ -197,7 +241,7 @@ userRouter.get('/profile', isAuthenticated, profile);
  *       400:
  *         description: Validation error
  */
-userRouter.post('/profile/edit', isAuthenticated, verifyCsrfToken, upload, editProfile);
+userRouter.post('/profile/edit', isAuthenticated, upload, editProfile);
 
 /**
  * @swagger
@@ -226,7 +270,7 @@ userRouter.post('/profile/edit', isAuthenticated, verifyCsrfToken, upload, editP
  *       400:
  *         description: Validation or authentication error
  */
-userRouter.post('/profile/change/password', isAuthenticated, verifyCsrfToken, changePassword);
+userRouter.post('/profile/change/password', isAuthenticated, changePassword);
 
 /**
  * @swagger
